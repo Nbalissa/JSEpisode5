@@ -1,3 +1,5 @@
+import { runInThisContext } from "vm";
+
 /**************************************************************
  * Point: defines a point on the map using X and Y coordinates
  *
@@ -22,7 +24,7 @@ class Point {
   };
 
   equals = point => point.x === this.x && point.y === this.y;
-
+  // this checks if the points are the same for x and y i.e. are the same point (thus are equal)
   static randomPoint = (maxX, maxY) => {
     let x = Math.random() * (maxX || 100);
     let y = Math.random() * (maxY || 100);
@@ -42,12 +44,18 @@ class Point {
  * let wallet = new Wallet(money);
  **********************************************************/
 class Wallet {
-  // implement Wallet!
-  constructor(money = 0) {}
+  constructor(money = 0) {
+    this.money = money;
+  }
 
-  credit = amount => {};
+  credit = amount => {
+    this.money = this.money + amount;
+    // this.money += amount
+  };
 
-  debit = amount => {};
+  debit = amount => {
+    this.money -= amount;
+  };
 }
 
 /**********************************************************
@@ -62,7 +70,14 @@ class Wallet {
  * let person = new Person(name, x, y);
  **********************************************************/
 class Person {
-  // implement Person!
+  constructor(name, x, y) {
+    this.name = name;
+    this.location = new Point(x, y);
+  }
+  wallet = new Wallet();
+
+  moveTo = point => (this.location = point);
+  //^ this is a method that we are defining
 }
 
 /**********************************************************
@@ -80,10 +95,24 @@ class Person {
  *
  * new vendor = new Vendor(name, x, y);
  **********************************************************/
-class Vendor {
-  // implement Vendor!
-}
+class Vendor extends Person {
+  // we already have a contructor that uses (n)ame, x, y), we only call constructor when we want to add or customize something
 
+  range = 5;
+  price = 1;
+
+  sellTo = (customer, numberOfIceCreams) => {
+    let cost = this.price * numberOfIceCreams;
+    this.moveTo(customer.location);
+    customer.wallet.debit(cost);
+    this.wallet.credit(cost);
+
+    // OR
+    // this.moveTo(customer.location);
+    // customer.wallet.debit(this.price * numberOfIceCreams);
+    // this.wallet.credit(this.price * numberOfIceCreams);
+  };
+}
 /**********************************************************
  * Customer: defines a customer
  * Subclasses Person
@@ -100,8 +129,25 @@ class Vendor {
  *
  * new customer = new Customer(name, x, y);
  **********************************************************/
-class Customer {
-  // implement Customer!
+class Customer extends Person {
+  constructor(name, x, y) {
+    super(name, x, y);
+    this.wallet.credit(10);
+  }
+  _isInRange = vendor =>
+    this.location.distanceTo(vendor.location) < vendor.range;
+
+  _haveEnoughMoney = (vendor, numberOfIceCreams) =>
+    this.wallet.money >= vendor.price * numberOfIceCreams;
+
+  requestIceCream = (vendor, numberOfIceCreams) => {
+    if (
+      this._isInRange(vendor) &&
+      this._haveEnoughMoney(vendor, numberOfIceCreams)
+    ) {
+      vendor.sellTo(this, numberOfIceCreams);
+    }
+  };
 }
 
 export { Point, Wallet, Person, Customer, Vendor };
